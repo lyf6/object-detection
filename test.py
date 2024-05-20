@@ -42,22 +42,22 @@ for i, img_path in tqdm(enumerate(image_folder.glob('*.jpg'))):
         "file_name": img_path.name,
         "height": height,
         "width": width,
-        "id": i + 1
+        "id": int(i + 1)  # 确保是标准Python int类型
     }
     coco_format['images'].append(image_info)
 
     # 随机生成矩形框
-    num_boxes = np.random.randint(1, 11)  # 1到10个框
+    num_boxes = np.random.randint(1, 11)
     for _ in range(num_boxes):
-        margin = 10  # 边缘保留的最小距离
+        margin = 10
         max_width = 300
         max_height = 300
-        w = np.random.randint(20, min(max_width, width - 2 * margin))
-        h = np.random.randint(20, min(max_height, height - 2 * margin))
-        x = np.random.randint(margin, width - w - margin)
-        y = np.random.randint(margin, height - h - margin)
-        color = (np.random.randint(255), np.random.randint(255), np.random.randint(255))
-        category_id = np.random.choice(range(1, len(categories) + 1))
+        w = int(np.random.randint(20, min(max_width, width - 2 * margin)))
+        h = int(np.random.randint(20, min(max_height, height - 2 * margin)))
+        x = int(np.random.randint(margin, width - w - margin))
+        y = int(np.random.randint(margin, height - h - margin))
+        color = (int(np.random.randint(255)), int(np.random.randint(255)), int(np.random.randint(255)))
+        category_id = int(np.random.choice(range(1, len(categories) + 1)))
         category_name = categories[category_id - 1]
 
         # 随机选择一个字体
@@ -67,17 +67,19 @@ for i, img_path in tqdm(enumerate(image_folder.glob('*.jpg'))):
         # 绘制矩形框
         draw.rectangle([(x, y), (x + w, y + h)], outline=color, width=3)
 
-        # 写文字
+        # 写文字，多次绘制以模拟加粗效果
         text_size = draw.textsize(category_name, font=font)
         text_x = x + (w - text_size[0]) // 2
         text_y = y - text_size[1] - 10
-        draw.rectangle([(text_x, text_y), (text_x + text_size[0], text_y + text_size[1])], fill=color)
-        draw.text((text_x, text_y), category_name, fill="black", font=font)
+        for offset in [(1, 0), (0, 1), (-1, 0), (0, -1), (0, 0)]:
+            draw.text((text_x + offset[0], text_y + offset[1]), category_name, fill="black", font=font)
+
+        draw.rectangle([(text_x, text_y), (text_x + text_size[0], text_y + text_size[1])], outline=color, width=1)
 
         # 标注信息
         annotation = {
             "id": annotation_id,
-            "image_id": i + 1,
+            "image_id": int(i + 1),  # 确保是标准Python int类型
             "category_id": category_id,
             "bbox": [x, y, w, h],
             "area": w * h,
@@ -89,6 +91,21 @@ for i, img_path in tqdm(enumerate(image_folder.glob('*.jpg'))):
     # 保存修改后的图像
     img_with_annotations = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
     cv2.imwrite(str(output_image_folder / img_path.name), img_with_annotations)
+
+# 将所有numpy数据类型转换为标准Python数据类型
+def convert_numpy(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    else:
+        return obj
+
+coco_format = json.loads(json.dumps(coco_format, default=convert_numpy))
 
 # 保存COCO标注文件
 with open(output_ann_folder / 'annotations.json', 'w') as f:
