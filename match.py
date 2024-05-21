@@ -7,9 +7,29 @@ import base64
 import sys
 
 # 检测矩形框的函数保持不变
+import paddledet as pdet
+from paddledet.apis import infer, init_model, get_test_images
+
 def detect_rectangles(image_path):
-    # 这里应该是调用你的模型的代码
-    return [(50, 50, 200, 100), (300, 200, 150, 75)]  # 示例数据
+    # 初始化模型
+    model = init_model('path/to/config', 'path/to/model_weights')
+
+    # 载入图像
+    image = pdet.data.transforms.build_transforms(image_path)
+
+    # 执行推理
+    results = infer(model, image)
+
+    # 解析检测结果，假设我们的目标类别标签是"rectangle"
+    rectangles = []
+    for bbox in results['boxes']:
+        if bbox[0] == "rectangle":  # 假设模型输出的类别索引或名称是"rectangle"
+            x1, y1, x2, y2, score = bbox[1:]
+            if score > 0.5:  # 只包括置信度高于0.5的结果
+                # 转换为(x, y, width, height)
+                rectangles.append((x1, y1, x2 - x1, y2 - y1))
+    return rectangles
+
 
 # 文本检测函数保持不变
 def detect_text(image_path):
